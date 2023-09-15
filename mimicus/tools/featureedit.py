@@ -334,7 +334,7 @@ _pdfrate_feature_descriptions = {
                 'title_num'               :{'type':int, 'range':(0, 420), 'edit':'y'},
                 'title_oth'               :{'type':int, 'range':(0, 160), 'edit':'y'},
                 'title_uc'                :{'type':int, 'range':(0, 74), 'edit':'y'},
-                'version'                 :{'type':int, 'range':(1, 8), 'edit':'y'}}，
+                'version'                 :{'type':int, 'range':(1, 8), 'edit':'y'},
                 'avg_degree'              :{'type':int, 'range':(1,23) , 'edit':'y'}},
                
 
@@ -437,7 +437,7 @@ class FeatureEdit(object):
         self.pdf = pdf
         self.feature_dict = dict()
         self.insert_offset = self._get_startxref_position()
-        self.graph = self._get_graph()
+        self.G = self._get_graph()
     
     #@CachedMethod
     def retrieve_feature_vector(self):
