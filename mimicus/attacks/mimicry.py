@@ -29,6 +29,7 @@ import sys
 
 from mimicus.tools.featureedit import FeatureEdit
 
+#test
 def mimicry(wolf_path, targets, classifier, 
             standardizer=None, verbose=False, trials=30):
     '''
