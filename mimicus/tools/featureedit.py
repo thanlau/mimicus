@@ -36,6 +36,12 @@ import sys
 import tempfile
 import time
 import traceback
+import os
+from pdf_genome import PdfGenome
+import types
+import numpy as np
+import pandas as pd
+import networkx as nx
 
 class CachedMethod(object):
     '''
@@ -328,7 +334,9 @@ _pdfrate_feature_descriptions = {
                 'title_num'               :{'type':int, 'range':(0, 420), 'edit':'y'},
                 'title_oth'               :{'type':int, 'range':(0, 160), 'edit':'y'},
                 'title_uc'                :{'type':int, 'range':(0, 74), 'edit':'y'},
-                'version'                 :{'type':int, 'range':(1, 8), 'edit':'y'}}
+                'version'                 :{'type':int, 'range':(1, 8), 'edit':'y'}}，
+                'avg_degree'              :{'type':int, 'range':(1,23) , 'edit':'y'}},
+               
 
 '''
 A sorted list of feature names.
@@ -342,7 +350,8 @@ class FeatureDescriptor(object):
     
     @staticmethod
     def get_feature_count():
-        return 135
+        #return 135
+        return 136
     
     @staticmethod
     def get_feature_name(i):
@@ -428,6 +437,7 @@ class FeatureEdit(object):
         self.pdf = pdf
         self.feature_dict = dict()
         self.insert_offset = self._get_startxref_position()
+        self.graph = self._get_graph()
     
     #@CachedMethod
     def retrieve_feature_vector(self):
@@ -456,61 +466,7 @@ class FeatureEdit(object):
         '''
         if len(self.feature_dict) > 0:
             return copy.deepcopy(self.feature_dict)
-#         queue_in = Queue.Queue()
-#         queue_out = Queue.Queue()
-#         print_lock = threading.Lock()
-#         print_lock2 = threading.Lock()
-#         
-#         def thread_print(tid, msg):
-#             print_lock2.acquire(True)
-#             print '\t'*tid + '%s: %s' % (tid, msg)
-#             print_lock2.release()
-#         
-#         def thread_function(tid):
-#             while True:
-#                 thread_print(tid, 'running')
-#                 method = ''
-#                 try:
-#                     method = queue_in.get_nowait()
-#                     thread_print(tid, 'Got "%s"' % method)
-#                 except Queue.Empty:
-#                     thread_print(tid, 'Queue.Empty')
-#                     return
-#                 r = 0
-#                 try:
-#                     # http://bugs.python.org/issue13817
-#                     r = getattr(self, 'get_' + method)()
-#                     thread_print(tid, 'got_attr')
-#                 except NotImplementedError as ex:
-#                     r = ex
-#                     thread_print(tid, 'got not impl')
-#                 except Exception as ex:
-#                     r = ex
-#                     thread_print(tid, 'got exception')
-#                     print_lock.acquire(True)
-#                     sys.stderr.write('#'*10)
-#                     traceback.print_exc(file=sys.stderr)
-#                     sys.stderr.write('#'*10)
-#                     print_lock.release()
-#                 queue_out.put((method, r))
-#                 thread_print(tid, 'put method %s' % method)
-#                 queue_in.task_done()
-#                 thread_print(tid, 'task done')
-#         
-#         for method in FeatureDescriptor.get_feature_names():
-#             queue_in.put(method)
-# 
-#         for tid in range(10):
-#             thread = threading.Thread(target=thread_function, args=[tid])
-#             thread.daemon = True
-#             thread.name = tid
-#             thread.start()
-#         
-#         queue_in.join()
-#         feature_dict = dict()
-#         while not queue_out.empty():
-#             r = queue_out.get()
-#             feature_dict[r[0]] = r[1]
+
         feature_dict = dict()
         for method in FeatureDescriptor.get_feature_names():
             try:
@@ -1408,7 +1364,21 @@ class FeatureEdit(object):
         r = _perl_regex(r'print sprintf("%d", @-[1]) while /[^\w\d](startxref)[^\w\d]/g', self.pdf)
         r = r.split('\n')
         return int(r[-2]) if len(r) > 1 else self.get_size()
+
+    @CachedMethod
+    def _get_graph(self):
+        pdf_obj = PdfGenome.load_genome(self.pdf, pickleable=True)
+        paths = PdfGenome.get_object_paths(pdf_obj)
+        G = nx.DiGraph()
+        for edge in paths:
+            for i in range(len(edge) - 1):
+                G.add_edge(edge[i], edge[i + 1])
+        return G
     
+    @CachedMethod
+    def get_avg_degree(self):
+        return sum(dict(self.G.degree()).values()) / self.G.number_of_nodes(),
+                
     def check_feature_change_valid(self, feat, feat_val):
         feat_name = FeatureDescriptor.get_feature_name(feat) if type(feat) == int else feat
         feat_desc = FeatureDescriptor.get_feature_descriptions()[feat_name]
