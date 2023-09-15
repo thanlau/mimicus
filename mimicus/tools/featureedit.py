@@ -1377,7 +1377,7 @@ class FeatureEdit(object):
     
     @CachedMethod
     def get_avg_degree(self):
-        return sum(dict(self.G.degree()).values()) / self.G.number_of_nodes(),
+        return sum(dict(self.G.degree()).values()) / self.G.number_of_nodes()
                 
     def check_feature_change_valid(self, feat, feat_val):
         feat_name = FeatureDescriptor.get_feature_name(feat) if type(feat) == int else feat
